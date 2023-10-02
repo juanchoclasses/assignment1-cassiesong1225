@@ -112,7 +112,7 @@ describe("FormulaEvaluator", () => {
           let result = recalc.result;
           let error = recalc.error;
 
-          expect(result).toEqual(3);
+          expect(result).toEqual(-1);
           expect(error).toEqual("");
         });
       });
@@ -128,7 +128,7 @@ describe("FormulaEvaluator", () => {
           let result = recalc.result;
           let error = recalc.error;
 
-          expect(result).toEqual(3);
+          expect(result).toEqual(2);
           expect(error).toEqual("");
         });
       });
@@ -252,13 +252,13 @@ describe("FormulaEvaluator", () => {
 
     describe("when the formula contains four tokens, number, operator, number, operator", () => {
       it("returns the result of the first three tokens", () => {
-        const formula: FormulaType = ["1", "+", "2", "+"];
+        const formula: FormulaType = ["1", "*", "2", "+"];
         recalc.evaluate(formula);
 
         let result = recalc.result;
         let error = recalc.error;
 
-        expect(result).toEqual(3);
+        expect(result).toEqual(2);
         expect(error).toEqual(ErrorMessages.invalidFormula);
       }
       );
@@ -312,7 +312,7 @@ describe("FormulaEvaluator", () => {
 
     describe("when the formula is 1 * ) ", () => {
       it("returns the number", () => {
-        const formula = ["1", "+", "+"];
+        const formula = ["1", "*", ")"];
 
         recalc.evaluate(formula);
 

@@ -1,6 +1,7 @@
 import Cell from "./Cell"
 import SheetMemory from "./SheetMemory"
 import { ErrorMessages } from "./GlobalDefinitions";
+type Operator = '+' | '-' | '*' | '/';
 
 
 
@@ -44,42 +45,73 @@ export class FormulaEvaluator {
    */
 
   evaluate(formula: FormulaType) {
+    const operators: Record<Operator, (a: number, b: number) => number> = {
+      '+': (a, b) => a + b,
+      '-': (a, b) => a - b,
+      '*': (a, b) => a * b,
+      '/': (a, b) => {
+        if (b === 0) {
+          this._errorMessage = ErrorMessages.divideByZero;
+          return NaN;
+        }
+        return a / b;
+      }
+    };
 
+    const precedence: { [key: string]: number } = {
+      '+': 1,
+      '-': 1,
+      '*': 2,
+      '/': 2,
+    };
 
-    // set the this._result to the length of the formula
+    const values: number[] = [];
+    const ops: string[] = [];
 
-    this._result = formula.length;
-    this._errorMessage = "";
-
-    switch (formula.length) {
-      case 0:
-        this._errorMessage = ErrorMessages.emptyFormula;
-        break;
-      case 7:
-        this._errorMessage = ErrorMessages.partial;
-        break;
-      case 8:
-        this._errorMessage = ErrorMessages.divideByZero;
-        break;
-      case 9:
-        this._errorMessage = ErrorMessages.invalidCell;
-        break;
-      case 10:
+    for (const token of formula) {
+      if (this.isNumber(token)) {
+        values.push(Number(token));
+      } else if (token in operators) {
+        while (ops.length && ops[ops.length - 1] !== "(" && precedence[ops[ops.length - 1]] >= precedence[token]) {
+          const op = ops.pop() as Operator;
+          const b = values.pop()!;
+          const a = values.pop()!;
+          values.push(operators[op](a, b));
+        }
+        ops.push(token);
+      } else if (token === "(") {
+        ops.push(token);
+      } else if (token === ")") {
+        while (ops.length && ops[ops.length - 1] !== "(") {
+          const op = ops.pop() as Operator;;
+          const b = values.pop()!;
+          const a = values.pop()!;
+          values.push(operators[op](a, b));
+        }
+        if (ops.length && ops[ops.length - 1] === "(") {
+          ops.pop();
+        }
+      } else if (this.isCellReference(token)) {
+        const [value, error] = this.getCellValue(token);
+        if (error) {
+          this._errorMessage = error;
+          return;
+        }
+        values.push(value);
+      } else {
         this._errorMessage = ErrorMessages.invalidFormula;
-        break;
-      case 11:
-        this._errorMessage = ErrorMessages.invalidNumber;
-        break;
-      case 12:
-        this._errorMessage = ErrorMessages.invalidOperator;
-        break;
-      case 13:
-        this._errorMessage = ErrorMessages.missingParentheses;
-        break;
-      default:
-        this._errorMessage = "";
-        break;
+        return;
+      }
     }
+
+    while (ops.length) {
+      const op = ops.pop() as Operator;;
+      const b = values.pop()!;
+      const a = values.pop()!;
+      values.push(operators[op](a, b));
+    }
+
+    this._result = values[0] || 0;
   }
 
   public get error(): string {
